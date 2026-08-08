@@ -3,7 +3,21 @@
 # 🔐 Privacy-Preserving Federated Learning
 ### Secure IoT-Based Distributed Data Analytics
 
-<img src="assets/banner.png" width="900"/>
+<p align="center">
+  <img src="assets/federated-learning-banner.png"
+       alt="Privacy-Preserving Federated Learning"
+       width="100%">
+</p>
+
+<h1 align="center">🔐 Privacy-Preserving Federated Learning</h1>
+
+<p align="center">
+  <strong>Secure IoT-Based Distributed Data Analytics</strong>
+</p>
+
+<p align="center">
+  Building privacy-preserving distributed machine learning for modern IoT infrastructures.
+</p>
 
 [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)]()
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.x-red.svg)]()
