@@ -1,0 +1,36 @@
+# Dataset
+
+dataset_path: dataset/clients/iid
+
+num_clients: 5
+
+# Training
+
+batch_size: 32
+epochs: 3
+learning_rate: 0.001
+
+# Federated Learning
+
+server_address: 127.0.0.1:9090
+num_rounds: 20
+fraction_fit: 1.0
+fraction_evaluate: 1.0
+
+# Model
+
+input_size: 42
+hidden1: 128
+hidden2: 64
+hidden3: 32
+output_size: 10
+
+# Device
+
+device: cpu
+
+# Future Enhancements
+
+secure_aggregation: false
+adaptive_communication: false
+differential_privacy: false

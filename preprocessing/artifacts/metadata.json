@@ -1,0 +1,13 @@
+{
+    "target_column": "label",
+    "categorical_columns": [
+        "proto",
+        "service",
+        "state"
+    ],
+    "removed_columns": [
+        "id"
+    ],
+    "saved_attack_column": "attack_cat",
+    "number_of_features": 42
+}
