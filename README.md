@@ -1,53 +1,154 @@
-# Privacy-Preserving Federated Learning for Secure IoT-Based Distributed Data Analytics
+## 🚀 Technology Stack
 
-A research-driven implementation of a **Privacy-Preserving Federated Learning (FL)** framework for IoT intrusion detection that combines **Flower**, **PyTorch**, **Differential Privacy**, **Secure Aggregation**, and **Adaptive Communication**.
+### 💻 Programming Language
 
----
-
-## Overview
-
-Traditional machine learning requires collecting all client data on a centralized server, introducing major privacy and security concerns.
-
-This project implements a decentralized Federated Learning framework where IoT devices collaboratively train an intrusion detection model without sharing raw data.
-
-The framework integrates:
-
-- Federated Learning (Flower)
-- PyTorch-based Neural Network
-- Differential Privacy
-- Secure Aggregation
-- Adaptive Communication
-- IID and Non-IID Client Simulation
+<p>
+  <img src="https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python" />
+</p>
 
 ---
 
-## Key Features
+### 🤖 Machine Learning & Deep Learning
 
-- Privacy-preserving collaborative learning
-- Flower-based Federated Learning
-- Differential Privacy using Opacus
-- Secure Aggregation
-- Adaptive client communication
-- IoT Intrusion Detection
-- IID & Non-IID experiments
-- Modular architecture
-- Fully reproducible research pipeline
+<p>
+  <img src="https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white" />
+  <img src="https://img.shields.io/badge/Scikit--Learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white" />
+  <img src="https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy" />
+  <img src="https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas" />
+</p>
 
 ---
 
-## Project Architecture
+### 🌐 Federated Learning
 
+<p>
+  <img src="https://img.shields.io/badge/Flower-Federated%20Learning-7B61FF?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/FedAvg-Aggregation-blueviolet?style=for-the-badge" />
+</p>
+
+---
+
+### 🔒 Privacy & Security
+
+<p>
+  <img src="https://img.shields.io/badge/Opacus-Differential%20Privacy-008080?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Differential%20Privacy-Privacy%20Preserving-success?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Secure-Aggregation-darkgreen?style=for-the-badge" />
+</p>
+
+---
+
+### 📊 Data Engineering
+
+- Data Cleaning
+- Feature Engineering
+- Feature Encoding
+- Feature Scaling
+- IID Client Partitioning
+- Non-IID Client Partitioning
+
+---
+
+### 📈 Visualization
+
+<p>
+  <img src="https://img.shields.io/badge/Matplotlib-Visualization-orange?style=for-the-badge" />
+</p>
+
+---
+
+### 📂 Dataset
+
+| Dataset | Purpose |
+|----------|---------|
+| **UNSW-NB15** | Primary dataset for IoT intrusion detection |
+| **TON-IoT** | Future evaluation and benchmarking |
+
+---
+
+### 🛠 Development Tools
+
+<p>
+  <img src="https://img.shields.io/badge/VS_Code-007ACC?style=for-the-badge&logo=visual-studio-code&logoColor=white" />
+  <img src="https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white" />
+  <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github" />
+</p>
+
+---
+
+### ⚙️ Core Framework Components
+
+| Module | Technology |
+|---------|------------|
+| Federated Learning | Flower |
+| Machine Learning | PyTorch |
+| Privacy | Opacus |
+| Secure Aggregation | Custom Aggregation Layer |
+| Adaptive Communication | Threshold-Based Communication |
+| Data Processing | Pandas, NumPy |
+| Feature Engineering | Scikit-learn |
+| Visualization | Matplotlib |
+
+---
+
+### 📦 Python Libraries
+
+```text
+torch
+flwr
+opacus
+numpy
+pandas
+scikit-learn
+matplotlib
+pyyaml
 ```
-                   Raw Dataset
-                        │
-                Data Preprocessing
-                        │
-               Feature Engineering
-                        │
-          IID / Non-IID Client Split
-                        │
-          ┌─────────────┴─────────────┐
-          │                           │
+
+---
+
+### 🧪 Supported Experiments
+
+- ✅ Centralized MLP Training
+- ✅ Federated Learning (IID)
+- ✅ Federated Learning (Non-IID)
+- ✅ Differential Privacy
+- ✅ Secure Aggregation
+- ✅ Adaptive Communication
+- ✅ Comparative Performance Analysis
+
+---
+
+### 📊 Evaluation Metrics
+
+#### Machine Learning
+
+- Accuracy
+- Precision
+- Recall
+- F1 Score
+- Confusion Matrix
+
+#### System
+
+- Communication Overhead
+- Aggregation Latency
+- Training Time
+- Bandwidth Usage
+- CPU Utilization
+- Memory Consumption
+
+---
+
+### 🚀 Future Enhancements
+
+- Homomorphic Encryption
+- Blockchain Integration
+- Edge AI Deployment
+- Docker Support
+- Kubernetes
+- CI/CD Pipelines
+- Transformer-based Models
+- Multi-Organization Federated Learning          │                           │
      Flower Client 1            Flower Client N
           │                           │
       Local Training             Local Training
