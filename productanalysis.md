@@ -4,14 +4,6 @@
 ### Secure IoT-Based Distributed Data Analytics
 
 <p align="center">
-  <img src="assets/federated-learning-banner.png"
-       alt="Privacy-Preserving Federated Learning"
-       width="100%">
-</p>
-
-<h1 align="center">🔐 Privacy-Preserving Federated Learning</h1>
-
-<p align="center">
   <strong>Secure IoT-Based Distributed Data Analytics</strong>
 </p>
 
