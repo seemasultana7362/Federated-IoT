@@ -4,10 +4,6 @@
 ### Secure IoT-Based Distributed Data Analytics
 
 <p align="center">
-  <strong>Secure IoT-Based Distributed Data Analytics</strong>
-</p>
-
-<p align="center">
   Building privacy-preserving distributed machine learning for modern IoT infrastructures.
 </p>
 
