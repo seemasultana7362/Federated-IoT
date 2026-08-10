@@ -21,6 +21,95 @@ Building privacy-preserving distributed machine learning for modern IoT infrastr
 
 </div>
 
+# 📑 Table of Contents
+
+- Product Vision
+- Problem Statement
+- Solution
+- Product Architecture
+- User Journey
+- Core Features
+- Technology Roadmap
+- Product Roadmap
+- Market Opportunities
+- Competitive Analysis
+- Success Metrics
+- Future Vision
+
+---
+
+# 🚀 Product Vision
+
+Create an intelligent Federated Learning platform that enables organizations to collaboratively train AI models **without exposing sensitive data**.
+
+The framework combines
+
+- Federated Learning
+- Differential Privacy
+- Secure Aggregation
+- Adaptive Communication
+
+to deliver secure, scalable, and communication-efficient AI for IoT environments.
+
+---
+
+# ❗ Problem Statement
+
+Today's IoT systems generate enormous volumes of sensitive network traffic.
+
+Traditional Machine Learning requires:
+
+```
+IoT Devices
+      │
+      ▼
+Upload Raw Data
+      │
+      ▼
+Central Server
+      │
+      ▼
+Model Training
+```
+
+This introduces
+
+❌ Privacy Risks
+
+❌ High Communication Cost
+
+❌ Regulatory Challenges
+
+❌ Single Point of Failure
+
+❌ Security Vulnerabilities
+
+---
+
+# 💡 Our Solution
+
+Instead of moving data,
+
+we move **knowledge**.
+
+```
+            Global Model
+                 │
+                 ▼
+      ┌────────────────────┐
+      │   Flower Server    │
+      └────────────────────┘
+         ▲      ▲      ▲
+
+   Model Updates Only
+
+┌─────────┐ ┌─────────┐ ┌─────────┐
+│ Client1 │ │ Client2 │ │ Client3 │
+└─────────┘ └─────────┘ └─────────┘
+
+Local Data Never Leaves Device
+```
+
 ## 🚀 Technology Stack
 
 ### 💻 Programming Language
