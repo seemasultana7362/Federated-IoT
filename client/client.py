@@ -1,8 +1,10 @@
 import argparse
 from collections import OrderedDict
+from xml.parsers.expat import model
 
 import flwr as fl
 import torch
+from torch import nn
 
 from client.dataset import load_client_dataset
 from client.train import (
@@ -11,7 +13,6 @@ from client.train import (
 )
 
 from client.evaluate import evaluate_model
-
 
 # ============================================================
 # Device
@@ -76,20 +77,30 @@ class FlowerClient(fl.client.NumPyClient):
     # --------------------------------------------------------
 
     def fit(self, parameters, config):
-
         print(f"\nClient {self.cid}: Training...")
 
         self.set_parameters(parameters)
 
         epochs = int(config.get("epochs", 3))
         learning_rate = float(config.get("learning_rate", 0.001))
+        target_epsilon = float(config.get("target_epsilon", 2.0))
+        target_delta = float(config.get("target_delta", 1e-5))
+        max_grad_norm = float(config.get("max_grad_norm", 1.0))
 
-        self.model, losses, accuracies = train_model(
+        (
+            self.model,
+            losses,
+            accuracies,
+            privacy_metrics,
+        ) = train_model(
             model=self.model,
             train_loader=self.train_loader,
             epochs=epochs,
             learning_rate=learning_rate,
             device=self.device,
+            target_epsilon=target_epsilon,
+            target_delta=target_delta,
+            max_grad_norm=max_grad_norm,
         )
 
         print(
@@ -97,10 +108,19 @@ class FlowerClient(fl.client.NumPyClient):
             f"Training Finished."
         )
 
+        print(
+            f"Client {self.cid}: "
+            f"ε = {privacy_metrics['epsilon']:.4f}, "
+            f"δ = {privacy_metrics['delta']:.2e}"
+        )
+
         return (
             self.get_parameters(config={}),
             len(self.train_loader.dataset),
-            {},
+            {
+                "epsilon": privacy_metrics["epsilon"],
+                "delta": privacy_metrics["delta"],
+            },
         )
 
     # --------------------------------------------------------
