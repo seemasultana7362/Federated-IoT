@@ -5,16 +5,23 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from models.mlp import MLP
+
 from opacus import PrivacyEngine
 from opacus.validators import ModuleValidator
 
+
+# ============================================================
+# Build Model
+# ============================================================
 
 def build_client_model(
     input_size: int,
     device: torch.device | None = None,
 ) -> nn.Module:
 
-    model = MLP(input_size=input_size)
+    model = MLP(
+        input_size=input_size
+    )
 
     if device is not None:
         model.to(device)
@@ -22,112 +29,168 @@ def build_client_model(
     return model
 
 
+# ============================================================
+# Train Model
+# ============================================================
+
 def train_model(
     model: nn.Module,
     train_loader: DataLoader,
     epochs: int = 3,
     learning_rate: float = 0.001,
     device: torch.device | None = None,
+
+    # Differential Privacy
+    dp_enabled: bool = True,
     target_epsilon: float = 2.0,
     target_delta: float = 1e-5,
     max_grad_norm: float = 1.0,
 ):
-    """
-    Train one client's model using Differentially Private SGD.
 
-    Returns:
-        model
-        losses
-        accuracies
-        privacy_metrics
-    """
+    # ========================================================
+    # Device
+    # ========================================================
 
     if device is None:
         device = torch.device("cpu")
 
-    # --------------------------------------------------------
-    # Move model to device
-    # --------------------------------------------------------
-
     model.to(device)
     model.train()
 
-    # --------------------------------------------------------
-    # Check Opacus compatibility
-    # --------------------------------------------------------
-
-    errors = ModuleValidator.validate(
-        model,
-        strict=False,
-    )
-
-    if errors:
-
-        print("\n[DP] Model compatibility issues:")
-
-        for error in errors:
-            print(f"    {error}")
-
-        raise ValueError(
-            "The model is not compatible with Opacus. "
-            "Fix the model before starting DP training."
-        )
-
-    print("[DP] Model validation passed.")
-
-    # --------------------------------------------------------
-    # Loss function
-    # --------------------------------------------------------
+    # ========================================================
+    # Loss
+    # ========================================================
 
     criterion = nn.CrossEntropyLoss()
 
-    # --------------------------------------------------------
+    # ========================================================
     # Optimizer
-    # --------------------------------------------------------
+    # ========================================================
 
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=learning_rate,
     )
 
-    # --------------------------------------------------------
-    # Differential Privacy Engine
-    # --------------------------------------------------------
+    # ========================================================
+    # Privacy Variables
+    # ========================================================
 
-    privacy_engine = PrivacyEngine(
-        accountant="prv",
-    )
+    privacy_engine = None
+    privacy_metrics = {
+        "epsilon": 0.0,
+        "delta": 0.0,
+        "max_grad_norm": 0.0,
+        "noise_multiplier": 0.0,
+    }
 
-    # --------------------------------------------------------
-    # Convert normal training into DP training
-    # --------------------------------------------------------
+    # ========================================================
+    # DIFFERENTIAL PRIVACY
+    # ========================================================
 
-    (
-        model,
-        optimizer,
-        train_loader,
-    ) = privacy_engine.make_private_with_epsilon(
-        module=model,
-        optimizer=optimizer,
-        data_loader=train_loader,
-        epochs=epochs,
-        target_epsilon=target_epsilon,
-        target_delta=target_delta,
-        max_grad_norm=max_grad_norm,
-    )
+    if dp_enabled:
 
-    print("\n[DP] Differential Privacy enabled.")
-    print(f"[DP] Target epsilon: {target_epsilon}")
-    print(f"[DP] Target delta: {target_delta}")
-    print(f"[DP] Max gradient norm: {max_grad_norm}")
-    print(
-        f"[DP] Noise multiplier: "
-        f"{optimizer.noise_multiplier:.6f}"
-    )
+        print(
+            "\n[DP] Differential Privacy enabled."
+        )
 
-    # --------------------------------------------------------
+        # ----------------------------------------------------
+        # Validate model
+        # ----------------------------------------------------
+
+        errors = ModuleValidator.validate(
+            model,
+            strict=False,
+        )
+
+        if errors:
+
+            print(
+                "\n[DP] Model compatibility issues:"
+            )
+
+            for error in errors:
+                print(
+                    f"    {error}"
+                )
+
+            raise ValueError(
+                "Model is not compatible with Opacus."
+            )
+
+        print(
+            "[DP] Model validation passed."
+        )
+
+        # ----------------------------------------------------
+        # Create Privacy Engine
+        # ----------------------------------------------------
+
+        privacy_engine = PrivacyEngine(
+            accountant="prv",
+        )
+
+        # ----------------------------------------------------
+        # Convert training to DP-SGD
+        # ----------------------------------------------------
+
+        model, optimizer, train_loader = (
+            privacy_engine.make_private_with_epsilon(
+                module=model,
+                optimizer=optimizer,
+                data_loader=train_loader,
+                epochs=epochs,
+                target_epsilon=target_epsilon,
+                target_delta=target_delta,
+                max_grad_norm=max_grad_norm,
+            )
+        )
+
+        # ----------------------------------------------------
+        # Get actual noise multiplier
+        # ----------------------------------------------------
+
+        noise_multiplier = (
+            optimizer.noise_multiplier
+        )
+
+        print(
+            f"[DP] Target epsilon: "
+            f"{target_epsilon}"
+        )
+
+        print(
+            f"[DP] Target delta: "
+            f"{target_delta}"
+        )
+
+        print(
+            f"[DP] Max gradient norm: "
+            f"{max_grad_norm}"
+        )
+
+        print(
+            f"[DP] Noise multiplier: "
+            f"{noise_multiplier:.6f}"
+        )
+
+    # ========================================================
+    # NON-DP BASELINE
+    # ========================================================
+
+    else:
+
+        print(
+            "\n[BASELINE] Differential Privacy disabled."
+        )
+
+        print(
+            "[BASELINE] Standard PyTorch training."
+        )
+
+    # ========================================================
     # Training
-    # --------------------------------------------------------
+    # ========================================================
 
     losses = []
     accuracies = []
@@ -145,23 +208,37 @@ def train_model(
             batch_X = batch_X.to(device)
             batch_y = batch_y.to(device)
 
+            # ------------------------------------------------
             # Reset gradients
+            # ------------------------------------------------
+
             optimizer.zero_grad()
 
+            # ------------------------------------------------
             # Forward pass
+            # ------------------------------------------------
+
             outputs = model(batch_X)
 
+            # ------------------------------------------------
             # Loss
+            # ------------------------------------------------
+
             loss = criterion(
                 outputs,
                 batch_y,
             )
 
+            # ------------------------------------------------
             # Backward pass
+            # ------------------------------------------------
+
             loss.backward()
 
-            # DP optimizer:
-            # gradient clipping + noise addition
+            # ------------------------------------------------
+            # Optimizer step
+            # ------------------------------------------------
+
             optimizer.step()
 
             # ------------------------------------------------
@@ -181,9 +258,9 @@ def train_model(
                 predicted == batch_y
             ).sum().item()
 
-        # ----------------------------------------------------
+        # ====================================================
         # Epoch metrics
-        # ----------------------------------------------------
+        # ====================================================
 
         epoch_loss = (
             running_loss / len(train_loader)
@@ -191,60 +268,83 @@ def train_model(
             else 0.0
         )
 
-        epoch_acc = (
+        epoch_accuracy = (
             100.0 * correct / total
             if total > 0
             else 0.0
         )
 
-        losses.append(epoch_loss)
-        accuracies.append(epoch_acc)
-
-        print(
-            f"[DP] Epoch {epoch + 1}/{epochs} | "
-            f"Loss: {epoch_loss:.4f} | "
-            f"Accuracy: {epoch_acc:.2f}%"
+        losses.append(
+            epoch_loss
         )
 
-    # --------------------------------------------------------
-    # Privacy accounting
-    # --------------------------------------------------------
+        accuracies.append(
+            epoch_accuracy
+        )
 
-       # --------------------------------------------------------
-    # Privacy accounting
-    # --------------------------------------------------------
+        prefix = (
+            "[DP]"
+            if dp_enabled
+            else "[BASELINE]"
+        )
 
-    epsilon = privacy_engine.get_epsilon(
-        target_delta
-    )
+        print(
+            f"{prefix} "
+            f"Epoch {epoch + 1}/{epochs} | "
+            f"Loss: {epoch_loss:.4f} | "
+            f"Accuracy: {epoch_accuracy:.2f}%"
+        )
 
-    noise_multiplier = optimizer.noise_multiplier
+    # ========================================================
+    # Differential Privacy Accounting
+    # ========================================================
 
-    print("\n[DP] Privacy accounting:")
+    if dp_enabled:
 
-    print(
-        f"    epsilon (ε): {epsilon:.4f}"
-    )
+        epsilon = (
+            privacy_engine.get_epsilon(
+                target_delta
+            )
+        )
 
-    print(
-        f"    delta (δ): {target_delta:.2e}"
-    )
+        noise_multiplier = (
+            optimizer.noise_multiplier
+        )
 
-    print(
-        f"    max_grad_norm: {max_grad_norm}"
-    )
+        privacy_metrics = {
+            "epsilon": epsilon,
+            "delta": target_delta,
+            "max_grad_norm": max_grad_norm,
+            "noise_multiplier": noise_multiplier,
+        }
 
-    print(
-        f"    noise_multiplier: "
-        f"{noise_multiplier:.6f}"
-    )
+        print(
+            "\n[DP] Privacy accounting:"
+        )
 
-    privacy_metrics = {
-        "epsilon": epsilon,
-        "delta": target_delta,
-        "max_grad_norm": max_grad_norm,
-        "noise_multiplier": noise_multiplier,
-    }
+        print(
+            f"    epsilon (ε): "
+            f"{epsilon:.4f}"
+        )
+
+        print(
+            f"    delta (δ): "
+            f"{target_delta:.2e}"
+        )
+
+        print(
+            f"    max_grad_norm: "
+            f"{max_grad_norm}"
+        )
+
+        print(
+            f"    noise_multiplier: "
+            f"{noise_multiplier:.6f}"
+        )
+
+    # ========================================================
+    # Return
+    # ========================================================
 
     return (
         model,
