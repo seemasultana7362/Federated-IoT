@@ -1,0 +1,16 @@
+privacy:
+  enabled: true
+
+  target_epsilon: 1.0
+  target_delta: 0.00001
+
+  max_grad_norm: 1.0
+
+  accountant: prv
+
+experiments:
+  epsilon_values:
+  - 1.0
+  - 2.0
+  - 4.0
+  - 8.0

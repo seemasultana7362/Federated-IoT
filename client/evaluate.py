@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import torch
 import torch.nn as nn
+
 from torch.utils.data import DataLoader
 
 from sklearn.metrics import (
@@ -21,18 +22,32 @@ def evaluate_model(
     """
     Evaluate a trained PyTorch model.
 
+    Parameters
+    ----------
+    model:
+        PyTorch model to evaluate.
+
+    dataloader:
+        DataLoader containing the evaluation dataset.
+
+    device:
+        CPU or CUDA device.
+
     Returns
     -------
     dict
-        {
-            "loss": float,
-            "accuracy": float,
-            "precision": float,
-            "recall": float,
-            "f1": float,
-            "confusion_matrix": ndarray
-        }
+        Contains:
+        - loss
+        - accuracy
+        - precision
+        - recall
+        - f1
+        - confusion_matrix
     """
+
+    # ========================================================
+    # Device
+    # ========================================================
 
     if device is None:
         device = torch.device("cpu")
@@ -40,12 +55,21 @@ def evaluate_model(
     model.to(device)
     model.eval()
 
+    # ========================================================
+    # Loss
+    # ========================================================
+
     criterion = nn.CrossEntropyLoss()
 
     total_loss = 0.0
+    total_samples = 0
 
     all_labels = []
     all_predictions = []
+
+    # ========================================================
+    # Evaluation
+    # ========================================================
 
     with torch.no_grad():
 
@@ -54,52 +78,127 @@ def evaluate_model(
             batch_X = batch_X.to(device)
             batch_y = batch_y.to(device)
 
+            # Forward pass
             outputs = model(batch_X)
 
-            loss = criterion(outputs, batch_y)
+            # Loss
+            loss = criterion(
+                outputs,
+                batch_y,
+            )
 
-            total_loss += loss.item()
+            batch_size = batch_y.size(0)
 
-            _, predicted = torch.max(outputs, 1)
+            total_loss += (
+                loss.item() * batch_size
+            )
 
-            all_labels.extend(batch_y.cpu().numpy())
-            all_predictions.extend(predicted.cpu().numpy())
+            total_samples += batch_size
 
-    avg_loss = total_loss / len(dataloader)
+            # Predictions
+            _, predicted = torch.max(
+                outputs,
+                1,
+            )
 
-    accuracy = accuracy_score(all_labels, all_predictions) * 100
+            all_labels.extend(
+                batch_y.cpu().numpy()
+            )
 
-    precision = precision_score(
-        all_labels,
-        all_predictions,
-        average="weighted",
-        zero_division=0,
-    ) * 100
+            all_predictions.extend(
+                predicted.cpu().numpy()
+            )
 
-    recall = recall_score(
-        all_labels,
-        all_predictions,
-        average="weighted",
-        zero_division=0,
-    ) * 100
+    # ========================================================
+    # Empty Dataset Check
+    # ========================================================
 
-    f1 = f1_score(
-        all_labels,
-        all_predictions,
-        average="weighted",
-        zero_division=0,
-    ) * 100
+    if total_samples == 0:
+        raise ValueError(
+            "Evaluation dataset is empty."
+        )
+
+    # ========================================================
+    # Average Loss
+    # ========================================================
+
+    average_loss = (
+        total_loss / total_samples
+    )
+
+    # ========================================================
+    # Metrics
+    # ========================================================
+
+    accuracy = (
+        accuracy_score(
+            all_labels,
+            all_predictions,
+        )
+        * 100
+    )
+
+    precision = (
+        precision_score(
+            all_labels,
+            all_predictions,
+            average="weighted",
+            zero_division=0,
+        )
+        * 100
+    )
+
+    recall = (
+        recall_score(
+            all_labels,
+            all_predictions,
+            average="weighted",
+            zero_division=0,
+        )
+        * 100
+    )
+
+    f1 = (
+        f1_score(
+            all_labels,
+            all_predictions,
+            average="weighted",
+            zero_division=0,
+        )
+        * 100
+    )
+
+    # ========================================================
+    # Confusion Matrix
+    # ========================================================
 
     cm = confusion_matrix(
         all_labels,
         all_predictions,
     )
 
+    # ========================================================
+    # Return
+    # ========================================================
+
     return {
-        "loss": avg_loss,
-        "accuracy": accuracy,
-        "precision": precision,
-        "recall": recall,
-        "f1": f1,
-        "confusion_matrix": cm,
+        "loss": float(average_loss),
+
+        "accuracy": float(
+            accuracy
+        ),
+
+        "precision": float(
+            precision
+        ),
+
+        "recall": float(
+            recall
+        ),
+
+        "f1": float(
+            f1
+        ),
+
+        "confusion_matrix": cm.tolist(),
     }
