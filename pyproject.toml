@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "federated-iot"
+version = "1.0.0"
+
+description = "Privacy-Preserving Federated Learning for IoT"
+requires-python = ">=3.11,<4.0"
+license = { file = "LICENSE" }
+
+dependencies = [
+    "flwr>=1.36.0",
+    "ray==2.56.1",
+    "torch",
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "pyyaml",
+    "joblib",
+    "opacus",
+    "pytest",
+]
+
+
+[tool.setuptools]
+packages = [
+    "client",
+    "server",
+    "models",
+    "preprocessing",
+    "evaluation",
+    "aggregation",
+    "communication",
+    "privacy",
+]
+
+py-modules = [
+    "client_app",
+    "server_app",
+    "task",
+    "workflow_with_log",
+]
+
+
+[tool.flwr.app]
+publisher = "local"
+fab-format-version = 1
+flwr-version-target = "1.37.0"
+
+
+[tool.flwr.app.components]
+serverapp = "server_app:app"
+clientapp = "client_app:app"
+
+
+[tool.flwr.app.config]
+num-server-rounds = 1
+local-epochs = 3
+learning-rate = 0.001
+
+differential-privacy = true
+target-epsilon = 2.0
+target-delta = 0.00001
+max-grad-norm = 1.0
+
+num-shares = 5
+reconstruction-threshold = 3
+max-weight = 1000.0
+secagg-logging = false
+timeout = 120.0

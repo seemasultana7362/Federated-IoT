@@ -1,13 +1,11 @@
-from __future__ import annotations
-
 from collections import OrderedDict
-
-import csv
-import os
 from pathlib import Path
+import csv
 
+import numpy as np
+import pandas as pd
 import torch
-import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
 
 from sklearn.metrics import (
     accuracy_score,
@@ -17,42 +15,24 @@ from sklearn.metrics import (
     confusion_matrix,
 )
 
-from client.dataset import load_test_dataset
+from flwr.common import parameters_to_ndarrays
+
 from models.mlp import MLP
 
 
-# ============================================================
-# Device
-# ============================================================
-
-DEVICE = torch.device(
-    "cuda"
-    if torch.cuda.is_available()
-    else "cpu"
-)
-
-
-# ============================================================
-# Results Configuration
-# ============================================================
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-EXPERIMENT_NAME = os.environ.get(
-    "FL_EXPERIMENT",
-    "current",
+TEST_PATH = (
+    PROJECT_ROOT
+    / "dataset"
+    / "processed"
+    / "test_processed.csv"
 )
 
 RESULTS_DIR = (
     PROJECT_ROOT
     / "results"
-    / "dp"
-    / EXPERIMENT_NAME
-)
-
-RESULTS_DIR.mkdir(
-    parents=True,
-    exist_ok=True,
+    / "secure_aggregation"
 )
 
 ROUND_HISTORY_PATH = (
@@ -60,10 +40,11 @@ ROUND_HISTORY_PATH = (
     / "round_history.csv"
 )
 
+DEVICE = torch.device("cpu")
 
-# ============================================================
-# Save Round Result
-# ============================================================
+INPUT_SIZE = 42
+BATCH_SIZE = 1024
+
 
 def save_round_result(
     round_number,
@@ -73,10 +54,11 @@ def save_round_result(
     recall,
     f1,
 ):
-    """
-    Automatically save global test metrics
-    after every federated round.
-    """
+
+    RESULTS_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     file_exists = ROUND_HISTORY_PATH.exists()
 
@@ -88,12 +70,7 @@ def save_round_result(
 
         writer = csv.writer(file)
 
-        # ----------------------------------------------------
-        # CSV Header
-        # ----------------------------------------------------
-
         if not file_exists:
-
             writer.writerow(
                 [
                     "round",
@@ -104,10 +81,6 @@ def save_round_result(
                     "f1",
                 ]
             )
-
-        # ----------------------------------------------------
-        # Round Result
-        # ----------------------------------------------------
 
         writer.writerow(
             [
@@ -120,111 +93,125 @@ def save_round_result(
             ]
         )
 
-    print(
-        f"[RESULTS] Round {round_number} "
-        f"saved to:"
-    )
+
+def load_global_test_data():
+
+    if not TEST_PATH.exists():
+        raise FileNotFoundError(
+            f"Global test dataset not found:\n{TEST_PATH}"
+        )
 
     print(
-        f"          {ROUND_HISTORY_PATH}"
+        f"[DATA] Loading global test dataset: {TEST_PATH}"
     )
 
+    df = pd.read_csv(TEST_PATH)
 
-# ============================================================
-# Global Model Evaluation
-# ============================================================
+    if "label" not in df.columns:
+        raise ValueError(
+            "Column 'label' not found in test dataset."
+        )
 
-def evaluate_global_model(
-    server_round,
-    parameters,
-    config = None,
-):
-    """
-    Evaluate the federated global model on the
-    held-out UNSW-NB15 test dataset.
+    feature_columns = [
+        column
+        for column in df.columns
+        if column not in ["label", "attack_cat"]
+    ]
 
-    Flower calls this automatically after each
-    federated round.
-    """
+    if len(feature_columns) != INPUT_SIZE:
+        raise ValueError(
+            f"Expected {INPUT_SIZE} features, "
+            f"found {len(feature_columns)}."
+        )
 
-    print(
-        f"\n[SERVER] Global evaluation - "
-        f"Round {server_round}"
+    X = df[feature_columns].values.astype(
+        np.float32
     )
 
-    # ========================================================
-    # Load Test Dataset
-    # ========================================================
+    y = df["label"].values.astype(
+        np.int64
+    )
 
-    test_loader, input_size = (
-        load_test_dataset()
+    X_tensor = torch.tensor(X)
+    y_tensor = torch.tensor(y)
+
+    dataset = TensorDataset(
+        X_tensor,
+        y_tensor,
+    )
+
+    loader = DataLoader(
+        dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
     )
 
     print(
         f"[DATA] Global test set: "
-        f"{len(test_loader.dataset)} samples, "
-        f"{input_size} features"
+        f"{len(dataset)} samples, "
+        f"{len(feature_columns)} features"
     )
 
-    # ========================================================
-    # Validate Input Size
-    # ========================================================
+    return loader
 
-    if input_size != 42:
 
-        raise ValueError(
-            f"Expected 42 features, "
-            f"but received {input_size}."
-        )
+def evaluate_global_model(
+    server_round,
+    parameters,
+    config=None,
+):
 
-    # ========================================================
-    # Build Model
-    # ========================================================
+    print()
+    print(
+        f"[SERVER] Global evaluation - Round {server_round}"
+    )
+
+    # Flower FedAvg supplies Parameters here.
+    if hasattr(parameters, "tensors"):
+        ndarrays = parameters_to_ndarrays(parameters)
+    else:
+        ndarrays = parameters
 
     model = MLP(
-        input_size=input_size
+        input_size=INPUT_SIZE
     )
 
-    model.to(DEVICE)
+    state_dict = model.state_dict()
 
-    # ========================================================
-    # Convert Flower Parameters
-    # ========================================================
+    if len(ndarrays) != len(state_dict):
+        raise ValueError(
+            "Number of received parameter arrays does not "
+            "match model state_dict."
+        )
 
-    params_dict = zip(
-        model.state_dict().keys(),
-        parameters,
-    )
+    new_state_dict = OrderedDict()
 
-    state_dict = OrderedDict(
-        {
-            key: torch.tensor(value)
-            for key, value in params_dict
-        }
-    )
+    for key, value in zip(
+        state_dict.keys(),
+        ndarrays,
+    ):
+        new_state_dict[key] = torch.tensor(
+            value,
+            dtype=state_dict[key].dtype,
+        )
 
     model.load_state_dict(
-        state_dict,
+        new_state_dict,
         strict=True,
     )
 
-    # ========================================================
-    # Evaluation Mode
-    # ========================================================
-
+    model.to(DEVICE)
     model.eval()
 
-    criterion = nn.CrossEntropyLoss()
+    test_loader = load_global_test_data()
+
+    criterion = torch.nn.CrossEntropyLoss()
 
     total_loss = 0.0
     total_samples = 0
 
-    all_labels = []
     all_predictions = []
-
-    # ========================================================
-    # Inference
-    # ========================================================
+    all_targets = []
 
     with torch.no_grad():
 
@@ -240,6 +227,11 @@ def evaluate_global_model(
                 batch_y,
             )
 
+            predictions = torch.argmax(
+                outputs,
+                dim=1,
+            )
+
             batch_size = batch_y.size(0)
 
             total_loss += (
@@ -248,153 +240,97 @@ def evaluate_global_model(
 
             total_samples += batch_size
 
-            _, predicted = torch.max(
-                outputs,
-                1,
+            all_predictions.extend(
+                predictions.cpu().numpy()
             )
 
-            all_labels.extend(
+            all_targets.extend(
                 batch_y.cpu().numpy()
             )
 
-            all_predictions.extend(
-                predicted.cpu().numpy()
-            )
-
-    # ========================================================
-    # Safety Check
-    # ========================================================
-
-    if total_samples == 0:
-
-        raise ValueError(
-            "Global test dataset is empty."
-        )
-
-    # ========================================================
-    # Metrics
-    # ========================================================
-
     average_loss = (
-        total_loss / total_samples
+        total_loss
+        / max(total_samples, 1)
     )
 
-    accuracy = (
-        accuracy_score(
-            all_labels,
-            all_predictions,
-        )
-        * 100
-    )
-
-    precision = (
-        precision_score(
-            all_labels,
-            all_predictions,
-            average="weighted",
-            zero_division=0,
-        )
-        * 100
-    )
-
-    recall = (
-        recall_score(
-            all_labels,
-            all_predictions,
-            average="weighted",
-            zero_division=0,
-        )
-        * 100
-    )
-
-    f1 = (
-        f1_score(
-            all_labels,
-            all_predictions,
-            average="weighted",
-            zero_division=0,
-        )
-        * 100
-    )
-
-    # ========================================================
-    # Confusion Matrix
-    # ========================================================
-
-    cm = confusion_matrix(
-        all_labels,
+    accuracy = accuracy_score(
+        all_targets,
         all_predictions,
     )
 
-    # ========================================================
-    # Print Results
-    # ========================================================
+    precision = precision_score(
+        all_targets,
+        all_predictions,
+        average="weighted",
+        zero_division=0,
+    )
 
+    recall = recall_score(
+        all_targets,
+        all_predictions,
+        average="weighted",
+        zero_division=0,
+    )
+
+    f1 = f1_score(
+        all_targets,
+        all_predictions,
+        average="weighted",
+        zero_division=0,
+    )
+
+    cm = confusion_matrix(
+        all_targets,
+        all_predictions,
+    )
+
+    print()
     print(
-        "\n=============================================="
+        f"Test Loss: {average_loss:.4f}"
     )
 
     print(
-        f"        GLOBAL TEST SET RESULTS - "
-        f"ROUND {server_round}"
+        f"Accuracy: {accuracy * 100:.2f}%"
     )
 
     print(
-        "=============================================="
+        f"Precision: {precision * 100:.2f}%"
     )
 
     print(
-        f"Test Loss      : {average_loss:.4f}"
+        f"Recall: {recall * 100:.2f}%"
     )
 
     print(
-        f"Accuracy       : {accuracy:.2f}%"
+        f"F1: {f1 * 100:.2f}%"
     )
 
-    print(
-        f"Precision      : {precision:.2f}%"
-    )
-
-    print(
-        f"Recall         : {recall:.2f}%"
-    )
-
-    print(
-        f"F1 Score       : {f1:.2f}%"
-    )
-
-    print(
-        "\nConfusion Matrix:"
-    )
-
+    print()
+    print("Confusion Matrix:")
     print(cm)
-
-    print(
-        "==============================================\n"
-    )
-
-    # ========================================================
-    # Automatically Save Round
-    # ========================================================
 
     save_round_result(
         round_number=server_round,
         loss=average_loss,
-        accuracy=accuracy,
-        precision=precision,
-        recall=recall,
-        f1=f1,
+        accuracy=accuracy * 100,
+        precision=precision * 100,
+        recall=recall * 100,
+        f1=f1 * 100,
     )
 
-    # ========================================================
-    # Return to Flower
-    # ========================================================
-
     metrics = {
-        "accuracy": float(accuracy),
-        "precision": float(precision),
-        "recall": float(recall),
-        "f1": float(f1),
+        "accuracy": float(
+            accuracy * 100
+        ),
+        "precision": float(
+            precision * 100
+        ),
+        "recall": float(
+            recall * 100
+        ),
+        "f1": float(
+            f1 * 100
+        ),
     }
 
     return (
