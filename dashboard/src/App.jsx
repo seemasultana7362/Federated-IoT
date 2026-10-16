@@ -65,11 +65,20 @@ export default function App() {
   const [logs, setLogs] = useState(['[SYSTEM] Federated IoT experiment console ready.', '[INFO] Waiting for local Python API.']);
   const [metrics, setMetrics] = useState(blankMetrics);
   const [history, setHistory] = useState([]);
-  const [health, setHealth] = useState({ api: false, repo: true, clients: null, testData: false, message: 'Checking local API…' });
+  const [health, setHealth] = useState({ api: false, repo: true, clients: null, testData: false, message: 'Checking local API…', details: null });
+  const [uploadingTest, setUploadingTest] = useState(false);
   const [error, setError] = useState('');
   const [activeNav, setActiveNav] = useState('Experiment lab');
   const [polling, setPolling] = useState(false);
-  const update = (key, value) => setConfig(old => ({...old, [key]: value}));
+  const update = (key, value) => setConfig(old => {
+    const next = {...old, [key]: value};
+    if (key === 'clients') {
+      next.shares = Math.min(old.shares, Number(value));
+      next.threshold = Math.min(old.threshold, next.shares);
+    }
+    if (key === 'shares') next.threshold = Math.min(old.threshold, Number(value));
+    return next;
+  });
   const running = status === 'running';
   const progress = stage <= 0 ? 0 : Math.min(100, Math.round(stage/6*100));
   useEffect(() => { checkHealth(); refreshHistory(); }, []);
@@ -85,8 +94,27 @@ export default function App() {
     } catch(e) { if(!stopped) { setHealth(h=>({...h,api:false,message:'API disconnected'})); setError('Could not reach the local experiment API. Is python dashboard_api.py running?'); setPolling(false); setStatus('failed'); } }
   }, 1200); return () => { stopped = true; clearInterval(timer); }; }, [job, polling]);
   async function checkHealth() {
-    try { const r = await fetch(API+'/api/health'); const d = await r.json(); setHealth({api:true, repo:d.repo, clients:d.clients, testData:d.test_data, message:d.message}); }
-    catch { setHealth({api:false, repo:true, clients:null, testData:false, message:'Local API offline. Start dashboard_api.py.'}); }
+    try { const r = await fetch(API+'/api/health'); const d = await r.json(); setHealth({api:true, repo:d.repo, clients:d.clients, testData:d.test_data, message:d.message, details:d.details || null}); }
+    catch { setHealth({api:false, repo:true, clients:null, testData:false, message:'Local API offline. Start dashboard_api.py.', details:null}); }
+  }
+  async function uploadTestFile(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.csv')) { setError('Choose a processed CSV file with a label column and 42 numeric features.'); return; }
+    setUploadingTest(true); setError('');
+    try {
+      const response = await fetch(API+'/api/upload-test', {
+        method:'POST',
+        headers:{'Content-Type':'text/csv','X-Filename':file.name},
+        body: await file.arrayBuffer()
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Upload rejected');
+      await checkHealth();
+      setLogs(old => [...old, '[DATA] '+data.message]);
+    } catch(e) { setError(e.message); }
+    finally { setUploadingTest(false); }
   }
   async function refreshHistory() {
     try { const r = await fetch(API+'/api/history'); const d = await r.json(); setHistory(d.items || []); } catch {}
@@ -97,7 +125,7 @@ export default function App() {
     try {
       const r = await fetch(API+'/api/run', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(config)});
       const d = await r.json();
-      if(!r.ok) throw new Error(d.error || 'Failed to start experiment');
+      if(!r.ok) throw new Error([d.error, ...(d.details || [])].filter(Boolean).join('\n'));
       setJob(d.job_id); setLogs(d.logs || ['[SYSTEM] Job created. Waiting for worker.']);
       if(d.status === 'failed') { setStatus('failed'); setPolling(false); setError(d.error || 'Run failed.'); }
     } catch(e) { setStatus('failed'); setPolling(false); setError(e.message + (health.api ? '' : ' Start the API with: python dashboard_api.py')); }
@@ -148,7 +176,7 @@ export default function App() {
             {config.dp&&<><Field label="Target epsilon (ε)" hint="Lower = stronger privacy"><div className="range-row"><input type="range" min=".5" max="12" step=".5" value={config.epsilon} onChange={e=>update('epsilon',Number(e.target.value))}/><strong>{config.epsilon.toFixed(1)}</strong></div></Field><Field label="Gradient clipping norm"><div className="range-row"><input type="range" min=".1" max="5" step=".1" value={config.clip} onChange={e=>update('clip',Number(e.target.value))}/><strong>{config.clip.toFixed(1)}</strong></div></Field><Field label="Target delta (δ)"><select value={config.delta} onChange={e=>update('delta',Number(e.target.value))}><option value={0.000001}>1e-6</option><option value={0.00001}>1e-5</option><option value={0.0001}>1e-4</option></select></Field></>}
             <div className="section-label"><LockKeyhole size={14}/> SECURE AGGREGATION <span className="section-tag">FLOWER SECAGG+</span></div>
             <div className="toggle-row"><div><b>Secure aggregation</b><small>Mask and aggregate client updates</small></div><button className={'toggle '+(config.secagg?'on':'')} role="switch" aria-checked={config.secagg} onClick={()=>update('secagg',!config.secagg)}><i/></button></div>
-            {config.secagg&&<div className="two-fields"><Field label="Shares"><input type="number" min="2" max="10" value={config.shares} onChange={e=>update('shares',Math.max(2,Math.min(10,Number(e.target.value)||2)))}/></Field><Field label="Reconstruction threshold"><input type="number" min="2" max={config.shares} value={config.threshold} onChange={e=>update('threshold',Math.max(2,Math.min(config.shares,Number(e.target.value)||2)))}/></Field></div>}
+            {config.secagg&&<div className="two-fields"><Field label="Shares"><input type="number" min="2" max={config.clients} value={config.shares} onChange={e=>update('shares',Math.max(2,Math.min(config.clients,Number(e.target.value)||2)))}/></Field><Field label="Reconstruction threshold"><input type="number" min="2" max={config.shares} value={config.threshold} onChange={e=>update('threshold',Math.max(2,Math.min(config.shares,Number(e.target.value)||2)))}/></Field></div>}
             <div className="section-label"><Radio size={14}/> COMMUNICATION</div>
             <div className="toggle-row"><div><b>Adaptive communication</b><small>Threshold-based update filtering</small></div><button className={'toggle '+(config.adaptive?'on':'')} role="switch" aria-checked={config.adaptive} onClick={()=>update('adaptive',!config.adaptive)}><i/></button></div>
             {config.adaptive&&<div className="inline-note">UI setting only: the current Flower server app does not pass this option to a communication policy yet.</div>}
@@ -171,7 +199,8 @@ export default function App() {
       <section className="bottom-strip"><div><GitBranch size={15}/><span>BACKEND</span><b>Flower · PyTorch · Opacus</b></div><div><HardDrive size={15}/><span>DATASET</span><b>UNSW-NB15</b></div><div><ShieldCheck size={15}/><span>PRIVACY</span><b>{config.dp?'DP-SGD enabled':'DP-SGD disabled'}</b></div><div><Zap size={15}/><span>AGGREGATION</span><b>{config.secagg?'Flower SecAgg+':'Flower workflow without SecAgg+'}</b></div></section>
       {!health.api&&<div className="api-warning"><CircleHelp size={16}/><span><b>Local API is not connected.</b> Start <code>python dashboard_api.py</code> from the repository root to run real experiments. The 3D topology is interactive, but no metrics are generated until the backend is connected.</span></div>}
       {error&&<div className="error-banner"><CircleHelp size={16}/><span><b>Experiment issue:</b> {error}</span><button onClick={()=>setError('')}>Dismiss</button></div>}
-      {!health.testData&&health.api&&<div className="api-warning"><CircleHelp size={16}/><span><b>Global test data not found.</b> The repository evaluator expects <code>dataset/processed/test_processed.csv</code>. Confirm this exists locally before expecting held-out global metrics.</span></div>}
+      {!health.testData&&health.api&&<div className="api-warning"><CircleHelp size={16}/><span><b>Global test data not found.</b> The evaluator expects a processed CSV at <code>dataset/processed/test_processed.csv</code>, with a label and 42 numeric feature columns. Upload that held-out test CSV here.</span><label className="upload-btn"><input type="file" accept=".csv,text/csv" onChange={uploadTestFile} disabled={uploadingTest}/>{uploadingTest?'Uploading…':'Select processed CSV'}</label></div>}
+      {health.api&&health.details&&!health.details.ready&&<div className="api-warning"><CircleHelp size={16}/><span><b>Dataset preflight details</b><br/>{[...(health.details.clients||[]).filter(c=>!c.ok).slice(0,3).map(c=>c.message), ...(health.details.test_data?[]:[health.details.test_message])].map((m,i)=><React.Fragment key={i}>{m}<br/></React.Fragment>)}{(health.details.clients||[]).some(c=>!c.ok&&String(c.message).includes('Git LFS pointer'))&&<>Resolve pointer files with <code>git lfs install</code> and <code>git lfs pull</code> in the repository root.</>}</span></div>}
       <footer className="footer"><span>FEDERATED.LAB · RESEARCH CONSOLE</span><span>BUILT AROUND <a href="https://github.com/seemasultana7362/Federated-IoT" target="_blank" rel="noreferrer">YOUR FEDERATED-IOT REPOSITORY <ArrowUpRight size={11}/></a></span></footer>
     </main>
   </div>;
