@@ -17,3 +17,8 @@ dataset/processed/
 *.pt
 
 *.pth
+
+# Interactive dashboard generated assets and local runs
+dashboard/node_modules/
+dashboard/dist/
+dashboard/.runs/
