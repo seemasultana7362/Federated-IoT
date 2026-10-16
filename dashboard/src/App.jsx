@@ -1,6 +1,6 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Line, OrbitControls, Stars, Text, Environment } from '@react-three/drei';
+import { Float, Line, OrbitControls, Stars, Text } from '@react-three/drei';
 import { Activity, ArrowDownRight, ArrowUpRight, Bell, BookOpen, Braces, Check, ChevronDown, CircleHelp, Cpu, Database, Download, Github, GitBranch, HardDrive, LockKeyhole, Network, Play, Radio, RotateCcw, ShieldCheck, SlidersHorizontal, Square, Terminal, Timer, Waves, Zap } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar } from 'recharts';
 
@@ -41,7 +41,6 @@ function NetworkScene({ config, running, stage }) {
     </React.Fragment>)}
     {[1.15,1.7,2.15].map((r,i)=><mesh key={i} rotation={[-Math.PI/2,0,0]} position={[0,-.2-i*.008,0]}><torusGeometry args={[r,.006,6,90]} /><meshBasicMaterial color="#2b6170" transparent opacity={.32} /></mesh>)}
     <OrbitControls enablePan={false} minDistance={4.8} maxDistance={11} autoRotate={!running} autoRotateSpeed={.25} />
-    <Environment preset="city" />
   </Canvas>;
 }
 
