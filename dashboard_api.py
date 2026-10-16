@@ -98,7 +98,7 @@ def load_metrics() -> list[dict[str, Any]]:
         with ROUND_HISTORY.open("r", newline="", encoding="utf-8") as handle:
             rows = list(csv.DictReader(handle))
         parsed = []
-        for row in rows[-100:]:
+        for row in rows:
             entry: dict[str, Any] = {}
             for key, value in row.items():
                 if value is None or value == "":
