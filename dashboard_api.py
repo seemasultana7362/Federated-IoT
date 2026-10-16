@@ -318,7 +318,17 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_OPTIONS(self) -> None:
-        self._send(204, {})
+        origin = self.headers.get("Origin", "")
+        allowed_origins = {
+            "http://localhost:5173", "http://127.0.0.1:5173",
+            "http://localhost:4173", "http://127.0.0.1:4173",
+        }
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", origin if origin in allowed_origins else "http://localhost:5173")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Filename")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def do_GET(self) -> None:
         if self.path == "/api/health":
