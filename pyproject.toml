@@ -58,6 +58,8 @@ clientapp = "client_app:app"
 
 [tool.flwr.app.config]
 num-server-rounds = 1
+num-clients = 5
+secure-aggregation = true
 local-epochs = 3
 learning-rate = 0.001
 
