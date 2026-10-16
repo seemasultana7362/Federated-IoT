@@ -115,11 +115,15 @@ def load_metrics() -> list[dict[str, Any]]:
 
 def parse_stage(line: str) -> int:
     lower = line.lower()
-    if any(s in lower for s in ("global evaluation", "test loss:", "global evaluation complete")):
+    # Flower evaluates round 0 before training. Treat that as preflight/baseline,
+    # not as near-complete progress.
+    if "global evaluation" in lower:
+        if re.search(r"round\\s+0\\b", lower):
+            return 1
         return 5
-    if any(s in lower for s in ("secagg+", "secure aggregation", "masked vectors", "unmask")):
+    if any(s in lower for s in ("masked vectors", "share keys", "unmask", "[secagg+] stage")):
         return 4
-    if any(s in lower for s in ("differential privacy", "[dp]", "privacy accounting")):
+    if "[dp]" in lower or "privacy accounting" in lower:
         return 3
     if any(s in lower for s in ("training...", "local training", "epoch ", "fit response")):
         return 2
@@ -160,7 +164,7 @@ def refresh_job_metrics(job: dict[str, Any]) -> None:
                     except (ValueError, TypeError):
                         pass
             job["metrics"]["round_history"] = new_rows
-            job["stage"] = max(job.get("stage", 0), 5)
+            if float(latest.get("round", 0) or 0) >= 1:\n                job["stage"] = max(job.get("stage", 0), 5)
 
 
 def run_flower(job_id: str, config: dict[str, Any]) -> None:
