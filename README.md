@@ -400,3 +400,56 @@ Computer Science Engineering
 
 Research Area:
 Federated Learning • Privacy-Preserving AI • Distributed Machine Learning • Cybersecurity
+
+
+---
+
+## Interactive 3D Experiment Dashboard
+
+The `dashboard/` app provides a React + Three.js 3D view of the edge clients, global model, federated training pipeline, privacy configuration, logs, and real round metrics. It launches the existing Flower application through a localhost-only Python API.
+
+### Start the dashboard
+
+1. Use Python 3.11 and activate the same virtual environment used for this project.
+2. Install the project requirements, then retrieve the real dataset files tracked with Git LFS:
+
+   ```bash
+   pip install -r requirements.txt
+   git lfs install
+   git lfs pull
+   ``
+
+3. Create the processed train/test files if they do not already exist. Put the original UNSW-NB15 files at `dataset/raw/UNSW_NB15_training-set.csv` and `dataset/raw/UNSW_NB15_testing-set.csv`, then run preprocessing from the expected working directory:
+
+   ```bash
+   cd preprocessing
+   python clean.py
+   cd ..
+   ``
+
+   The global evaluator expects `dataset/processed/test_processed.csv`, with 42 numeric features plus `label` (and optional `attack_cat`). The dashboard can also upload an already-processed held-out test CSV.
+
+4. Start the API from the repository root:
+
+   ```bash
+   python dashboard_api.py
+   ``
+
+5. In a second terminal, launch the web app:
+
+   ```bash
+   cd dashboard
+   npm install
+   npm run dev
+   ``
+
+Open the local Vite URL (normally `http://localhost:5173`). Keep the API terminal and dashboard terminal running while you experiment.
+
+### Dashboard controls
+
+- Select an IID or Non-IID partition, client count, global rounds, local epochs, and learning rate.
+- Configure Opacus DP-SGD (target `epsilon`, `delta`, and gradient clipping norm).
+- Enable or disable Flower SecAgg+ where the active server workflow supports it.
+- Watch backend logs, the actual global evaluator's round metrics, and export the run snapshot as JSON.
+
+Adaptive communication is labelled as not yet wired into the active Flower app and is rejected by preflight rather than silently claiming it ran. The API listens only on `127.0.0.1:8765`; do not expose it to a public network without authentication and production hardening.
