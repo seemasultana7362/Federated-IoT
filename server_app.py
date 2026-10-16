@@ -71,6 +71,10 @@ def main(grid: Grid, context: Context) -> None:
         context.run_config["timeout"]
     )
 
+    secure_aggregation = bool(
+        context.run_config.get("secure-aggregation", True)
+    )
+
     print("\n" + "=" * 70)
     print("FEDERATED LEARNING - SECURE AGGREGATION")
     print("=" * 70)
@@ -131,17 +135,16 @@ def main(grid: Grid, context: Context) -> None:
         strategy=strategy,
     )
 
-    # Flower's built-in SecAgg+ workflow.
-    fit_workflow = SecAggPlusWorkflow(
-        num_shares=num_shares,
-        reconstruction_threshold=reconstruction_threshold,
-        max_weight=max_weight,
-        timeout=timeout,
-    )
-    
-
-    workflow = DefaultWorkflow(
-        fit_workflow=fit_workflow,
-    )
+    # Use the selected run mode rather than assuming SecAgg+ is always active.
+    if secure_aggregation:
+        fit_workflow = SecAggPlusWorkflow(
+            num_shares=num_shares,
+            reconstruction_threshold=reconstruction_threshold,
+            max_weight=max_weight,
+            timeout=timeout,
+        )
+        workflow = DefaultWorkflow(fit_workflow=fit_workflow)
+    else:
+        workflow = DefaultWorkflow()
 
     workflow(grid, legacy_context)
