@@ -13,7 +13,7 @@ from workflow_with_log import SecAggPlusWorkflowWithLogs
 #from workflow_with_log import SecAggPlusWorkflowWithLogs
 
 
-NUM_CLIENTS = 5
+DEFAULT_NUM_CLIENTS = 5
 INPUT_SIZE = 42
 
 
@@ -35,6 +35,7 @@ app = ServerApp()
 def main(grid: Grid, context: Context) -> None:
 
     num_rounds = int(context.run_config["num-server-rounds"])
+    num_clients = int(context.run_config.get("num-clients", DEFAULT_NUM_CLIENTS))
     local_epochs = int(context.run_config["local-epochs"])
     learning_rate = float(context.run_config["learning-rate"])
 
@@ -73,7 +74,7 @@ def main(grid: Grid, context: Context) -> None:
     print("\n" + "=" * 70)
     print("FEDERATED LEARNING - SECURE AGGREGATION")
     print("=" * 70)
-    print(f"Clients: {NUM_CLIENTS}")
+    print(f"Clients: {num_clients}")
     print(f"Rounds: {num_rounds}")
     print(f"Local epochs: {local_epochs}")
     print(f"Learning rate: {learning_rate}")
@@ -111,8 +112,8 @@ def main(grid: Grid, context: Context) -> None:
 
     strategy = FedAvg(
         fraction_fit=1.0,
-        min_fit_clients=NUM_CLIENTS,
-        min_available_clients=NUM_CLIENTS,
+        min_fit_clients=num_clients,
+        min_available_clients=num_clients,
 
         # We use centralized global evaluation.
         fraction_evaluate=0.0,
