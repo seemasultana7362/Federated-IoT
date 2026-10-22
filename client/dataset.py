@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 
 import pandas as pd
 import torch
@@ -18,12 +19,17 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # Configuration
 # ============================================================
 
+# The dashboard sets FEDERATED_IOT_SPLIT to select a matching local partition.
+# Default remains non-IID so existing CLI workflows keep their previous behavior.
+_CLIENT_SPLIT = os.environ.get("FEDERATED_IOT_SPLIT", "non_iid").strip().lower()
+if _CLIENT_SPLIT not in {"iid", "non_iid"}:
+    raise ValueError("FEDERATED_IOT_SPLIT must be 'iid' or 'non_iid'.")
+
 DEFAULT_CLIENT_DATA_DIR = (
-    
     PROJECT_ROOT
     / "dataset"
     / "clients"
-    / "non_iid"
+    / _CLIENT_SPLIT
 )
 
 DEFAULT_TEST_DATA_PATH = (

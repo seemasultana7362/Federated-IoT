@@ -1,4 +1,3 @@
-
 # Python environments
 venv/
 venv312/
@@ -34,4 +33,8 @@ dataset/processed/
 
 # Flower build artifacts
 *.fab
-/dashboard/
+
+# FedViz full-stack local artifacts
+fedviz-fullstack/node_modules/
+fedviz-fullstack/dist/
+fedviz-fullstack/.runs/
