@@ -44,33 +44,47 @@ class FlowerClient(fl.client.NumPyClient):
         self.device = get_device()
 
         print(
-            f"\n========== CLIENT {cid} =========="
+            f"[DIAG][client {cid}] initialization started; "
+            f"device={self.device}",
+            flush=True,
         )
 
         # ----------------------------------------------------
         # Load local dataset
         # ----------------------------------------------------
 
+        print(
+            f"[DIAG][client {cid}] loading dataset",
+            flush=True,
+        )
         self.train_loader, self.input_size = (
             load_client_dataset(
                 int(cid)
             )
+        )
+        print(
+            f"[DIAG][client {cid}] dataset loaded; "
+            f"samples={len(self.train_loader.dataset)}, "
+            f"features={self.input_size}",
+            flush=True,
         )
 
         # ----------------------------------------------------
         # Build model
         # ----------------------------------------------------
 
+        print(
+            f"[DIAG][client {cid}] building model",
+            flush=True,
+        )
         self.model = build_client_model(
             self.input_size,
             self.device,
         )
 
         print(
-            f"Loaded Client {cid} "
-            f"with "
-            f"{len(self.train_loader.dataset)} "
-            f"samples."
+            f"[DIAG][client {cid}] initialization complete",
+            flush=True,
         )
 
     # ========================================================
@@ -124,8 +138,9 @@ class FlowerClient(fl.client.NumPyClient):
     ):
 
         print(
-            f"\nClient {self.cid}: "
-            f"Training..."
+            f"[DIAG][client {self.cid}] fit started; "
+            f"received {len(parameters)} parameter arrays",
+            flush=True,
         )
 
         # ----------------------------------------------------
@@ -134,6 +149,10 @@ class FlowerClient(fl.client.NumPyClient):
 
         self.set_parameters(
             parameters
+        )
+        print(
+            f"[DIAG][client {self.cid}] global parameters loaded",
+            flush=True,
         )
 
         # ----------------------------------------------------
@@ -250,6 +269,10 @@ class FlowerClient(fl.client.NumPyClient):
         print(
             "============================================"
         )
+        print(
+            f"[DIAG][client {self.cid}] entering local training",
+            flush=True,
+        )
 
         # ----------------------------------------------------
         # Train
@@ -280,6 +303,10 @@ class FlowerClient(fl.client.NumPyClient):
 
             max_grad_norm=max_grad_norm,
         )
+        print(
+            f"[DIAG][client {self.cid}] local training complete",
+            flush=True,
+        )
 
         # ----------------------------------------------------
         # Training finished
@@ -287,7 +314,8 @@ class FlowerClient(fl.client.NumPyClient):
 
         print(
             f"\nClient {self.cid}: "
-            f"Training Finished."
+            f"Training Finished.",
+            flush=True,
         )
 
         print(

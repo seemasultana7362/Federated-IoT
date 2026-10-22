@@ -1,4 +1,5 @@
 from logging import INFO
+from time import perf_counter
 
 from flwr.common import Context, log
 from flwr.server import Grid, LegacyContext
@@ -59,9 +60,10 @@ class SecAggPlusWorkflowWithLogs(SecAggPlusWorkflow):
         state: WorkflowState,
     ) -> bool:
 
+        started_at = perf_counter()
         log(
             INFO,
-            "[SECAGG+] Stage 0: SETUP",
+            "[DIAG][SECAGG+] Stage 0: SETUP started",
         )
 
         result = super().setup_stage(
@@ -72,7 +74,8 @@ class SecAggPlusWorkflowWithLogs(SecAggPlusWorkflow):
 
         log(
             INFO,
-            "[SECAGG+] Stage 0 complete",
+            f"[DIAG][SECAGG+] Stage 0 complete "
+            f"in {perf_counter() - started_at:.2f}s",
         )
 
         return result
@@ -84,9 +87,10 @@ class SecAggPlusWorkflowWithLogs(SecAggPlusWorkflow):
         state: WorkflowState,
     ) -> bool:
 
+        started_at = perf_counter()
         log(
             INFO,
-            "[SECAGG+] Stage 1: SHARE KEYS",
+            "[DIAG][SECAGG+] Stage 1: SHARE KEYS started",
         )
 
         result = super().share_keys_stage(
@@ -97,7 +101,8 @@ class SecAggPlusWorkflowWithLogs(SecAggPlusWorkflow):
 
         log(
             INFO,
-            "[SECAGG+] Stage 1 complete",
+            f"[DIAG][SECAGG+] Stage 1 complete "
+            f"in {perf_counter() - started_at:.2f}s",
         )
 
         return result
@@ -109,9 +114,10 @@ class SecAggPlusWorkflowWithLogs(SecAggPlusWorkflow):
         state: WorkflowState,
     ) -> bool:
 
+        started_at = perf_counter()
         log(
             INFO,
-            "[SECAGG+] Stage 2: COLLECT MASKED VECTORS",
+            "[DIAG][SECAGG+] Stage 2: COLLECT MASKED VECTORS started",
         )
 
         result = super().collect_masked_vectors_stage(
@@ -122,7 +128,8 @@ class SecAggPlusWorkflowWithLogs(SecAggPlusWorkflow):
 
         log(
             INFO,
-            "[SECAGG+] Stage 2 complete",
+            f"[DIAG][SECAGG+] Stage 2 complete "
+            f"in {perf_counter() - started_at:.2f}s",
         )
 
         return result
@@ -134,9 +141,10 @@ class SecAggPlusWorkflowWithLogs(SecAggPlusWorkflow):
         state: WorkflowState,
     ) -> bool:
 
+        started_at = perf_counter()
         log(
             INFO,
-            "[SECAGG+] Stage 3: UNMASK",
+            "[DIAG][SECAGG+] Stage 3: UNMASK started",
         )
 
         result = super().unmask_stage(
@@ -147,7 +155,8 @@ class SecAggPlusWorkflowWithLogs(SecAggPlusWorkflow):
 
         log(
             INFO,
-            "[SECAGG+] Stage 3 complete",
+            f"[DIAG][SECAGG+] Stage 3 complete "
+            f"in {perf_counter() - started_at:.2f}s",
         )
 
         return result

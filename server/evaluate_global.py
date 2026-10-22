@@ -20,8 +20,19 @@ from flwr.common import parameters_to_ndarrays
 from models.mlp import MLP
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+import os
+from pathlib import Path
 
+PROJECT_ROOT = Path(
+    os.environ.get(
+        "FEDERATED_IOT_PROJECT_ROOT",
+        Path(__file__).resolve().parent.parent,
+    )
+).expanduser().resolve()
+
+TEST_PATH = (
+    PROJECT_ROOT / "dataset" / "processed" / "test_processed.csv"
+)
 TEST_PATH = (
     PROJECT_ROOT
     / "dataset"
@@ -29,11 +40,14 @@ TEST_PATH = (
     / "test_processed.csv"
 )
 
-RESULTS_DIR = (
-    PROJECT_ROOT
-    / "results"
-    / "secure_aggregation"
-)
+import os
+
+RESULTS_DIR = Path(
+    os.environ.get(
+        "FEDERATED_IOT_RESULTS_DIR",
+        str(PROJECT_ROOT / "results" / "secure_aggregation"),
+    )
+).expanduser().resolve()
 
 ROUND_HISTORY_PATH = (
     RESULTS_DIR
