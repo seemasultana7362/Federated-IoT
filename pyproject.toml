@@ -52,6 +52,8 @@ serverapp = "server_app:app"
 clientapp = "client_app:app"
 
 [tool.flwr.app.config]
+
+[tool.flwr.app.config]
 num-server-rounds = 10
 num-clients = 5
 local-epochs = 3
