@@ -1,12 +1,11 @@
+
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
-
 [project]
 name = "federated-iot"
 version = "1.0.0"
-
 description = "Privacy-Preserving Federated Learning for IoT"
 requires-python = ">=3.11,<4.0"
 license = { file = "LICENSE" }
@@ -23,7 +22,6 @@ dependencies = [
     "opacus",
     "pytest",
 ]
-
 
 [tool.setuptools]
 packages = [
@@ -44,22 +42,23 @@ py-modules = [
     "workflow_with_log",
 ]
 
-
 [tool.flwr.app]
 publisher = "local"
 fab-format-version = 1
 flwr-version-target = "1.37.0"
 
-
 [tool.flwr.app.components]
 serverapp = "server_app:app"
 clientapp = "client_app:app"
 
-
 [tool.flwr.app.config]
-num-server-rounds = 1
+num-server-rounds = 10
+num-clients = 5
 local-epochs = 3
 learning-rate = 0.001
+
+adaptive-communication = true
+secure-aggregation = false
 
 differential-privacy = true
 target-epsilon = 2.0
