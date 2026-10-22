@@ -1,19 +1,37 @@
+
+# Python environments
 venv/
+venv312/
+.venv/
+dashboard-api/.venv/
 
+# Python generated files
 __pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
 
+# Jupyter
 .ipynb_checkpoints/
 
-*.pyc
+# Environment variables and secrets
+.env
+.env.*
 
+# macOS
 .DS_Store
 
+# Generated results
 results/
 
+# Datasets
 dataset/raw/
-
 dataset/processed/
 
+# Model checkpoints
 *.pt
-
 *.pth
+
+# Flower build artifacts
+*.fab
+/dashboard/
