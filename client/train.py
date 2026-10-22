@@ -91,7 +91,8 @@ def train_model(
     if dp_enabled:
 
         print(
-            "\n[DP] Differential Privacy enabled."
+            "\n[DIAG][training] differential privacy setup started",
+            flush=True,
         )
 
         # ----------------------------------------------------
@@ -119,7 +120,8 @@ def train_model(
             )
 
         print(
-            "[DP] Model validation passed."
+            "[DIAG][training] Opacus model validation passed",
+            flush=True,
         )
 
         # ----------------------------------------------------
@@ -134,6 +136,10 @@ def train_model(
         # Convert training to DP-SGD
         # ----------------------------------------------------
 
+        print(
+            "[DIAG][training] creating private model/optimizer",
+            flush=True,
+        )
         model, optimizer, train_loader = (
             privacy_engine.make_private_with_epsilon(
                 module=model,
@@ -144,6 +150,10 @@ def train_model(
                 target_delta=target_delta,
                 max_grad_norm=max_grad_norm,
             )
+        )
+        print(
+            "[DIAG][training] private model/optimizer created",
+            flush=True,
         )
 
         # ----------------------------------------------------
@@ -198,12 +208,22 @@ def train_model(
     for epoch in range(epochs):
 
         model.train()
+        batch_count = len(train_loader)
+        progress_interval = max(1, batch_count // 5)
+        print(
+            f"[DIAG][training] epoch {epoch + 1}/{epochs} started; "
+            f"batches={batch_count}",
+            flush=True,
+        )
 
         running_loss = 0.0
         correct = 0
         total = 0
 
-        for batch_X, batch_y in train_loader:
+        for batch_index, (batch_X, batch_y) in enumerate(
+            train_loader,
+            start=1,
+        ):
 
             batch_X = batch_X.to(device)
             batch_y = batch_y.to(device)
@@ -258,6 +278,16 @@ def train_model(
                 predicted == batch_y
             ).sum().item()
 
+            if (
+                batch_index % progress_interval == 0
+                or batch_index == batch_count
+            ):
+                print(
+                    f"[DIAG][training] epoch {epoch + 1}/{epochs}: "
+                    f"batch {batch_index}/{batch_count} complete",
+                    flush=True,
+                )
+
         # ====================================================
         # Epoch metrics
         # ====================================================
@@ -292,7 +322,8 @@ def train_model(
             f"{prefix} "
             f"Epoch {epoch + 1}/{epochs} | "
             f"Loss: {epoch_loss:.4f} | "
-            f"Accuracy: {epoch_accuracy:.2f}%"
+            f"Accuracy: {epoch_accuracy:.2f}%",
+            flush=True,
         )
 
     # ========================================================

@@ -1,24 +1,40 @@
+# Python environments
 venv/
+venv312/
+.venv/
+dashboard-api/.venv/
 
+# Python generated files
 __pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
 
+# Jupyter
 .ipynb_checkpoints/
 
-*.pyc
+# Environment variables and secrets
+.env
+.env.*
 
+# macOS
 .DS_Store
 
+# Generated results
 results/
 
+# Datasets
 dataset/raw/
-
 dataset/processed/
 
+# Model checkpoints
 *.pt
-
 *.pth
 
-# Interactive dashboard generated assets and local runs
-dashboard/node_modules/
-dashboard/dist/
-dashboard/.runs/
+# Flower build artifacts
+*.fab
+
+# FedViz full-stack local artifacts
+fedviz-fullstack/node_modules/
+fedviz-fullstack/dist/
+fedviz-fullstack/.runs/
